@@ -69,11 +69,11 @@ function(req, res) {
 app.get('/logout',
 function(req, res) {
   req.session.destroy(function() {
-    console.log('session destroyed');
     res.end('http://127.0.0.1:4568/login');
   });
 });
 
+// also restrict post on /links
 app.post('/links', 
 function(req, res) {
   var uri = req.body.url;
@@ -124,7 +124,7 @@ function(req, res) {
   user.save().then(function(newUser) {
     Users.add(newUser);
     
-    generateSession(req, res, user.attributes.username);
+    generateSession(req, res, user.get('username'));
   });
 });
 
@@ -138,12 +138,25 @@ function(req, res) {
   new User({username: username})
     .fetch()
     .then(function(userObj) {
-      if (userObj && bcrypt.compareSync(password, userObj.attributes.password)) {
-        generateSession(req, res, userObj.attributes.username);
-      }
-      else {
+      if (userObj) {
+        userObj.checkPassword(password, function(err, isMatch) {
+          if (isMatch) {
+            generateSession(req, res, userObj.get('username'));
+          } else {
+            console.log('Incorrect password');
+            res.redirect('/login');
+          }
+        });
+      } else {      
+      // if (userObj && bcrypt.compareSync(password, userObj.get('password'))) {
+      //   generateSession(req, res, userObj.get('username'));
+      // }
+      // else {
+      //   res.redirect('/login');
+      // } 
+        console.log('User not found');
         res.redirect('/login');
-      }      
+      }
     }); 
 });
 
